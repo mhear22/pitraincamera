@@ -1,5 +1,6 @@
-django
-pyaudio
-wave
-scipy
-numpy
+django==4.2.5
+pyaudio==0.2.13
+wave==0.0.2
+scipy==1.11.2
+numpy==1.24.3
+libsonyapi==1.0
