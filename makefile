@@ -6,3 +6,7 @@ install:
 
 run:
 	cd src/mysite && python3 manage.py runserver 0.0.0.0:8000
+
+listen:
+	python3 src/mic/listener.py
+
