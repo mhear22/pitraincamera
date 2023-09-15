@@ -4,6 +4,7 @@ from scipy.io import wavfile
 import numpy as np
 from statistics import mean
 import os
+import requests
 
 form_1 = pyaudio.paInt16 # 16-bit resolution
 chans = 1 # 1 channel
@@ -66,7 +67,8 @@ class Listener:
         return wav_output_filename
 
     def listen(self):
-        device = [(item) for item in self.devices if item.get('name') == 'Astro A50 Voice'][0]
+        device_name = os.environ.get("DEVICE_NAME", 'Astro A50 Voice')
+        device = [(item) for item in self.devices if item.get('name') == device_name][0]
 
         while(True):
             self.trigger_sensitivity = os.environ.get("LISTENING_SENSITIVITY", 1000)
@@ -74,6 +76,7 @@ class Listener:
             train_detected = self.measure_wave(filename)
             if(train_detected):
                 print("LOUD!")
+                requests.post('http://localhost:8000/doot/', json={'key': 'value'})
 
 
 
