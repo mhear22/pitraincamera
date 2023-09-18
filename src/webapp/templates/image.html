@@ -1,0 +1,33 @@
+{% extends "root.html" %}
+
+{% block script %}
+<script>
+$(document).ready(() => {
+    $('#trigger').on('click', () =>{
+        console.log("Clicked");
+        $.ajax({
+            type:'PUT',
+            url:'',
+            data: JSON.stringify({
+                "body":'abc'
+            }),
+            dataType: 'json',
+            success: (result) => {
+                console.log("responsed")
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
+
+{% block body %}
+    <div>
+        PHOTOS!
+
+        <button id="trigger">
+            Take a photo
+        </button>
+    </div>
+{% endblock %}

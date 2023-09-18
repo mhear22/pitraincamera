@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import TemplateHTMLRenderer
 import subprocess
+from rest_framework.decorators import api_view
 
 
 class DootModel(APIView):
@@ -17,13 +18,3 @@ class DootModel(APIView):
     def post(self, request, format=None):
         print('Hit')
         return Response({'body': 'done!'})
-    
-    def photo(self, request, format=None):
-        try:
-            cmd = "raspistill -vf -o /home/pi/pitraincamera/images/pic.jpeg"
-            subprocess.call(cmd, shell=True)
-        except:
-            print("Failed to trigger camera")
-        return Response({"body": 'photo taken'})
-    
-    
