@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.renderers import TemplateHTMLRenderer
 import subprocess
 from rest_framework.decorators import api_view
+import os
 
 
 # Create your views here.
@@ -13,7 +14,14 @@ class ImageModel(APIView):
 
 
     def get(self, request, format=None):
-        return Response()
+        here = os.getcwd()
+        images = os.listdir(os.path.join(here,'/src/webapp/photos/images'))
+        return Response({'images': images})
+    
+    def get_image(self, request, format=None):
+    
+        return Response({"body": 'photo taken'})
+
 
     def put(self, request, format=None):
         try:
