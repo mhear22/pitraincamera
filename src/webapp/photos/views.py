@@ -17,7 +17,7 @@ class ImageModel(APIView):
 
     def put(self, request, format=None):
         try:
-            cmd = "raspistill -vf -o /home/pi/pitraincamera/images/pic.jpeg"
+            cmd = "raspistill -vf -o /home/mhear22/pitraincamera/images/pic.jpeg"
             subprocess.call(cmd, shell=True)
         except:
             print("Failed to trigger camera")

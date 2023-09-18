@@ -17,4 +17,4 @@ pic:
 	libcamera-still -o image.jpg
 
 copy:
-	scp mhear22@192.168.20.93:/home/mhear22/image.jpg .
+	scp mhear22@192.168.20.93:/home/mhear22/pitraincamera/images/pic.jpeg .
