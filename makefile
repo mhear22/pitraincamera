@@ -1,4 +1,6 @@
 MAKEFLAGS += -j2
+dockeraddress=115136208505.dkr.ecr.ap-southeast-2.amazonaws.com/pitraincam
+
 
 clone:
 	git clone https://github.com/mhear22/pitraincamera.git && cd pitraincamera && make install && make run
@@ -26,10 +28,16 @@ copy:
 
 
 build:
-	docker build . -t pitrain
+	docker build . -t pitrain -t ${dockeraddress}
 
 debug: build
 	docker run --env-file .env -it pitrain /bin/sh
 
 pretend: build
 	docker run --env-file .env -it pitrain
+
+aws-login:
+	aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin ${dockeraddress}
+
+publish: build aws-login
+	docker push ${dockeraddress}
