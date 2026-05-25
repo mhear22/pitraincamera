@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Guard</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a;
+    --text: #e1e4ed; --muted: #8b8fa3; --accent: #6c5ce7;
+    --danger: #e74c3c; --success: #2ecc71; --warning: #f39c12;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  h1 { font-size: 24px; font-weight: 600; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+  .tab {
+    background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+    padding: 10px 20px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: 500; border-bottom: none;
+  }
+  .tab.active { background: var(--surface); color: var(--text); border-color: var(--accent); border-bottom: 2px solid var(--accent); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px; min-width: 140px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+  .stat-card .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .controls { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+  select, button, input[type="number"] {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 14px; border-radius: 8px; font-size: 14px; cursor: pointer;
+  }
+  input[type="number"] { width: 100px; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: white; }
+  button.primary:hover { opacity: 0.9; }
+  button.danger { background: var(--danger); border-color: var(--danger); color: white; }
+
+  .pi-status {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 24px;
+  }
+  .pi-status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; margin-top: 12px; }
+  .pi-metric { }
+  .pi-metric .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .pi-metric .value { font-size: 20px; font-weight: 600; margin-top: 2px; }
+  .pi-online { color: var(--success); }
+  .pi-offline { color: var(--danger); }
+  .pi-unknown { color: var(--muted); }
+
+  .settings-form {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; max-width: 600px;
+  }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-group .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .form-row .form-group { flex: 1; min-width: 120px; }
+
+  .toggle { position: relative; width: 48px; height: 26px; display: inline-block; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle .slider {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--border); border-radius: 26px; cursor: pointer; transition: 0.2s;
+  }
+  .toggle .slider:before {
+    content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px;
+    background: white; border-radius: 50%; transition: 0.2s;
+  }
+  .toggle input:checked + .slider { background: var(--success); }
+  .toggle input:checked + .slider:before { transform: translateX(22px); }
+
+  .events { display: flex; flex-direction: column; gap: 12px; }
+  .event {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center;
+  }
+  .event-photo {
+    width: 120px; height: 80px; border-radius: 8px; object-fit: cover;
+    background: var(--border); cursor: pointer;
+  }
+  .event-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .event-info p { font-size: 13px; color: var(--muted); }
+  .event-db { font-size: 24px; font-weight: 700; text-align: right; }
+  .db-low { color: var(--success); }
+  .db-mid { color: #f39c12; }
+  .db-high { color: var(--danger); }
+
+  .audio-player { margin-top: 8px; width: 100%; max-width: 300px; height: 32px; }
+
+  .chart-container {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 24px;
+  }
+  .chart-container h2 { font-size: 16px; margin-bottom: 12px; }
+  canvas { width: 100% !important; height: 200px !important; }
+
+  .empty { text-align: center; color: var(--muted); padding: 40px; }
+  .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 20px; }
+
+  .save-bar { margin-top: 20px; display: flex; gap: 12px; align-items: center; }
+  .save-msg { font-size: 13px; }
+
+  @media (max-width: 600px) {
+    .event { grid-template-columns: 1fr; }
+    .event-photo { width: 100%; height: 160px; }
+    .event-db { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔊 Sound Guard</h1>
+  <span id="lastUpdate" style="color: var(--muted); font-size: 13px;"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('events')">Events</div>
+  <div class="tab" onclick="switchTab('settings')">⚙️ Settings</div>
+</div>
+
+<!-- ====== EVENTS TAB ====== -->
+<div class="tab-content active" id="tab-events">
+  <div class="stats" id="stats"></div>
+
+  <div class="chart-container">
+    <h2>Sound Events Over Time</h2>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="controls">
+    <select id="period" onchange="loadMetrics()">
+      <option value="hour">Hourly</option>
+      <option value="day">Daily</option>
+    </select>
+    <select id="since" onchange="loadMetrics()">
+      <option value="24h">Last 24h</option>
+      <option value="7d">Last 7 days</option>
+      <option value="30d">Last 30 days</option>
+    </select>
+    <button onclick="loadEvents(0)">⟳ Refresh</button>
+  </div>
+
+  <div class="events" id="events"></div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- ====== SETTINGS TAB ====== -->
+<div class="tab-content" id="tab-settings">
+
+  <!-- Pi Status -->
+  <div class="pi-status">
+    <h2 style="font-size:16px; margin-bottom:4px;">📡 Raspberry Pi Status</h2>
+    <div id="pi-status-text" style="font-size:13px; color:var(--muted); margin-bottom:12px;">Loading...</div>
+    <div class="pi-status-grid" id="pi-metrics"></div>
+  </div>
+
+  <!-- Settings Form -->
+  <div class="settings-form">
+    <h2 style="font-size:16px; margin-bottom:20px;">🎛️ Pi Configuration</h2>
+    <p style="font-size:12px; color:var(--muted); margin-bottom:16px;">
+      Changes are synced to the Pi on its next check-in.
+    </p>
+
+    <div style="margin-bottom:20px;">
+      <label style="font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-right:12px;">
+        Monitoring Enabled
+      </label>
+      <label class="toggle">
+        <input type="checkbox" id="set-enabled">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Threshold (dBFS)</label>
+        <input type="number" id="set-threshold" step="0.5" min="-60" max="0">
+        <div class="hint">0 = max. Typical: -10 to -3</div>
+      </div>
+      <div class="form-group">
+        <label>Cooldown (sec)</label>
+        <input type="number" id="set-cooldown" step="0.5" min="1" max="300">
+        <div class="hint">Min time between triggers</div>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Sample Rate</label>
+        <select id="set-samplerate">
+          <option value="22050">22050</option>
+          <option value="44100">44100</option>
+          <option value="48000">48000</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Pre-buffer (sec)</label>
+        <input type="number" id="set-prebuffer" step="0.5" min="0" max="10">
+        <div class="hint">Audio kept before peak</div>
+      </div>
+      <div class="form-group">
+        <label>Post-buffer (sec)</label>
+        <input type="number" id="set-postbuffer" step="0.5" min="0.5" max="10">
+        <div class="hint">Audio kept after peak</div>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <button class="primary" onclick="saveSettings()">💾 Save Settings</button>
+      <span class="save-msg" id="save-msg"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+
+function dbClass(db) {
+  if (db < -20) return 'db-low';
+  if (db < -6) return 'db-mid';
+  return 'db-high';
+}
+
+function formatTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString();
+}
+
+function timeAgo(iso) {
+  if (!iso) return null;
+  const diff = Date.now() - new Date(iso).getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.floor(hr / 24);
+  return `${days}d ago`;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab:nth-child(${tab === 'events' ? 1 : 2})`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if (tab === 'settings') { loadPiStatus(); loadSettings(); }
+}
+
+// --- Pi Status ---
+async function loadPiStatus() {
+  try {
+    const r = await fetch(`${API}/api/checkin/latest`);
+    const c = await r.json();
+    const statusEl = document.getElementById('pi-status-text');
+    const metricsEl = document.getElementById('pi-metrics');
+
+    if (!c) {
+      statusEl.innerHTML = '<span class="pi-unknown">⏳ No check-ins yet — Pi has never connected</span>';
+      metricsEl.innerHTML = '';
+      return;
+    }
+
+    const ago = timeAgo(c.timestamp);
+    const isOnline = ago && (Date.now() - new Date(c.timestamp).getTime()) < 120000; // 2 min
+    const statusClass = isOnline ? 'pi-online' : 'pi-offline';
+    const statusIcon = isOnline ? '🟢' : '🔴';
+    statusEl.innerHTML = `<span class="${statusClass}">${statusIcon} ${isOnline ? 'Online' : 'Offline'} · Last check-in: ${formatTime(c.timestamp)} (${ago})</span>`;
+
+    metricsEl.innerHTML = `
+      <div class="pi-metric"><div class="label">Uptime</div><div class="value">${c.uptime_sec ? formatUptime(c.uptime_sec) : '—'}</div></div>
+      <div class="pi-metric"><div class="label">CPU Temp</div><div class="value">${c.cpu_temp_c != null ? c.cpu_temp_c + '°C' : '—'}</div></div>
+      <div class="pi-metric"><div class="label">Free Memory</div><div class="value">${c.mem_free_mb != null ? c.mem_free_mb + ' MB' : '—'}</div></div>
+      <div class="pi-metric"><div class="label">Free Disk</div><div class="value">${c.disk_free_mb != null ? c.disk_free_mb + ' MB' : '—'}</div></div>
+      <div class="pi-metric"><div class="label">Events Sent</div><div class="value">${c.events_sent ?? 0}</div></div>
+      <div class="pi-metric"><div class="label">Check-in ID</div><div class="value" style="font-size:14px">#${c.id}</div></div>
+    `;
+  } catch (e) {
+    document.getElementById('pi-status-text').textContent = 'Failed to load Pi status';
+  }
+}
+
+function formatUptime(sec) {
+  if (!sec) return '—';
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (d > 0) return `${d}d ${h}h`;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+// --- Settings ---
+let currentSettings = {};
+
+async function loadSettings() {
+  try {
+    const r = await fetch(`${API}/api/settings`);
+    currentSettings = await r.json();
+    document.getElementById('set-enabled').checked = !!currentSettings.enabled;
+    document.getElementById('set-threshold').value = currentSettings.threshold_db;
+    document.getElementById('set-cooldown').value = currentSettings.cooldown_sec;
+    document.getElementById('set-samplerate').value = currentSettings.sample_rate;
+    document.getElementById('set-prebuffer').value = currentSettings.pre_buffer_sec;
+    document.getElementById('set-postbuffer').value = currentSettings.post_buffer_sec;
+  } catch (e) {
+    console.error('Failed to load settings', e);
+  }
+}
+
+async function saveSettings() {
+  const msgEl = document.getElementById('save-msg');
+  msgEl.textContent = 'Saving...';
+  msgEl.style.color = 'var(--muted)';
+
+  const body = {
+    enabled: document.getElementById('set-enabled').checked ? 1 : 0,
+    threshold_db: parseFloat(document.getElementById('set-threshold').value),
+    cooldown_sec: parseFloat(document.getElementById('set-cooldown').value),
+    sample_rate: parseInt(document.getElementById('set-samplerate').value),
+    pre_buffer_sec: parseFloat(document.getElementById('set-prebuffer').value),
+    post_buffer_sec: parseFloat(document.getElementById('set-postbuffer').value),
+  };
+
+  try {
+    const r = await fetch(`${API}/api/settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (r.ok) {
+      currentSettings = await r.json();
+      msgEl.textContent = '✅ Saved — Pi will pick up changes on next check-in';
+      msgEl.style.color = 'var(--success)';
+    } else {
+      msgEl.textContent = '❌ Save failed';
+      msgEl.style.color = 'var(--danger)';
+    }
+  } catch (e) {
+    msgEl.textContent = '❌ Network error';
+    msgEl.style.color = 'var(--danger)';
+  }
+
+  setTimeout(() => { msgEl.textContent = ''; }, 5000);
+}
+
+// --- Events ---
+async function loadStats() {
+  const r = await fetch(`${API}/api/stats`);
+  const s = await r.json();
+
+  // Also fetch latest checkin for the status bar
+  let piAgo = '';
+  try {
+    const cr = await fetch(`${API}/api/checkin/latest`);
+    const c = await cr.json();
+    if (c) {
+      const isOnline = (Date.now() - new Date(c.timestamp).getTime()) < 120000;
+      piAgo = `<div class="stat-card"><div class="label">Pi Status</div><div class="value" style="font-size:16px"><span class="${isOnline ? 'pi-online' : 'pi-offline'}">${isOnline ? '🟢' : '🔴'} ${timeAgo(c.timestamp)}</span></div></div>`;
+    }
+  } catch {}
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="label">Total Events</div><div class="value">${s.total_events || 0}</div></div>
+    <div class="stat-card"><div class="label">Avg dB</div><div class="value">${s.avg_db || '—'}</div></div>
+    <div class="stat-card"><div class="label">Max dB</div><div class="value ${dbClass(s.max_db || 0)}">${s.max_db || '—'}</div></div>
+    <div class="stat-card"><div class="label">Last Event</div><div class="value" style="font-size:16px">${s.last_event ? formatTime(s.last_event) : '—'}</div></div>
+    ${piAgo}
+  `;
+}
+
+let currentOffset = 0;
+const PAGE_SIZE = 20;
+
+async function loadEvents(offset = 0) {
+  currentOffset = offset;
+  const r = await fetch(`${API}/api/events?limit=${PAGE_SIZE}&offset=${offset}`);
+  const data = await r.json();
+  const container = document.getElementById('events');
+
+  if (data.events.length === 0) {
+    container.innerHTML = '<div class="empty">No events yet — waiting for sound triggers 🔇</div>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = data.events.map(e => `
+    <div class="event">
+      ${e.photo_url ? `<img class="event-photo" src="${API}${e.photo_url}" alt="capture" loading="lazy" onclick="window.open(this.src)">` : '<div class="event-photo" style="display:flex;align-items:center;justify-content:center;font-size:24px">📷</div>'}
+      <div class="event-info">
+        <h3>${formatTime(e.timestamp)}</h3>
+        <p>Duration: ${e.duration_sec}s · Sample Rate: ${e.sample_rate}Hz</p>
+        ${e.audio_url ? `<audio class="audio-player" controls src="${API}${e.audio_url}" preload="none"></audio>` : ''}
+      </div>
+      <div class="event-db ${dbClass(e.peak_db)}">${e.peak_db} dB</div>
+    </div>
+  `).join('');
+
+  const totalPages = Math.ceil(data.total / PAGE_SIZE);
+  const currentPage = Math.floor(offset / PAGE_SIZE);
+  let pagHtml = '';
+  if (currentPage > 0) pagHtml += `<button onclick="loadEvents(${(currentPage-1)*PAGE_SIZE})">← Prev</button>`;
+  pagHtml += `<span style="color:var(--muted);line-height:36px">Page ${currentPage+1} of ${totalPages}</span>`;
+  if (currentPage < totalPages - 1) pagHtml += `<button onclick="loadEvents(${(currentPage+1)*PAGE_SIZE})">Next →</button>`;
+  document.getElementById('pagination').innerHTML = pagHtml;
+
+  document.getElementById('lastUpdate').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+}
+
+async function loadMetrics() {
+  const period = document.getElementById('period').value;
+  const sinceSel = document.getElementById('since').value;
+  const since = {
+    '24h': new Date(Date.now() - 86400000).toISOString(),
+    '7d': new Date(Date.now() - 7 * 86400000).toISOString(),
+    '30d': new Date(Date.now() - 30 * 86400000).toISOString(),
+  }[sinceSel];
+
+  const r = await fetch(`${API}/api/metrics?period=${period}&since=${since}`);
+  const data = await r.json();
+
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width - 40;
+  canvas.height = 200;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!data.metrics.length) {
+    ctx.fillStyle = '#8b8fa3';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('No data for this period', canvas.width / 2, 100);
+    return;
+  }
+
+  const m = [...data.metrics].reverse();
+  const maxCount = Math.max(...m.map(d => d.event_count), 1);
+  const barW = Math.max(2, (canvas.width - 60) / m.length - 2);
+
+  ctx.fillStyle = '#8b8fa3';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const y = 20 + (180 * (1 - i / 4));
+    ctx.fillText(Math.round(maxCount * i / 4), 40, y + 4);
+    ctx.strokeStyle = '#2a2d3a';
+    ctx.beginPath(); ctx.moveTo(45, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  m.forEach((d, i) => {
+    const x = 50 + i * ((canvas.width - 60) / m.length);
+    const h = (d.event_count / maxCount) * 170;
+    const y = 195 - h;
+    const db = d.avg_db || 0;
+    ctx.fillStyle = db < -20 ? '#2ecc71' : db < -6 ? '#f39c12' : '#e74c3c';
+    ctx.fillRect(x, y, barW, h);
+    if (m.length <= 24 || i % Math.ceil(m.length / 12) === 0) {
+      ctx.fillStyle = '#8b8fa3';
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      const label = d.period.slice(period === 'day' ? 5 : 11, period === 'day' ? 10 : 16);
+      ctx.fillText(label, x + barW / 2, 195 + 12);
+    }
+  });
+}
+
+// Initial load + auto-refresh
+loadStats();
+loadEvents(0);
+loadMetrics();
+setInterval(() => { loadStats(); loadEvents(currentOffset); loadMetrics(); }, 30000);
+</script>
+</body>
+</html>
