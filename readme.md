@@ -19,6 +19,35 @@ Audio monitoring system for Raspberry Pi. Listens to onboard mic, captures photo
 
 ## Quick Start
 
+### Pi Zero Install (one-liner)
+
+```bash
+curl -sL https://raw.githubusercontent.com/mhear22/pitraincamera/rewrite/install.sh | bash
+```
+
+That's it. It will:
+1. Install Rust + system dependencies
+2. Clone the repo and build the client for ARM
+3. Install a systemd service (auto-starts on boot)
+4. Start monitoring immediately
+
+Customize before running:
+```bash
+# Point to your server (default: http://192.168.1.66:3002)
+export SOUND_GUARD_SERVER=http://YOUR_SERVER:3002/api/events
+# Adjust trigger threshold (default: -10 dBFS)
+export SOUND_GUARD_THRESHOLD=-10
+```
+
+After install, settings can be changed from the dashboard — no Pi restart needed.
+
+**Useful commands:**
+```bash
+sudo systemctl status sound-guard   # check status
+sudo journalctl -u sound-guard -f   # live logs
+sudo systemctl restart sound-guard  # restart after config edit
+```
+
 ### Server
 
 ```bash
@@ -27,30 +56,23 @@ npm install
 npm start        # runs on port 3002
 ```
 
-### Client (cross-compile for Pi Zero)
-
-```bash
-cd client-rust
-# Install ARMv6 target
-rustup target add arm-unknown-linux-gnueabihf
-# Build
-cargo build --release --target arm-unknown-linux-gnueabihf
-# Binary at target/arm-unknown-linux-gnueabihf/release/sound-guard-client
-```
-
-Or via Docker (multi-stage build):
-
-```bash
-docker buildx build --platform linux/arm/v6 -t sound-guard-client .
-```
-
-### Docker Compose (server only)
-
+Or via Docker:
 ```bash
 docker compose up -d
 ```
 
-## Configuration
+## Microphone Options
+
+The Pi Zero has **no onboard microphone**. You need one of these:
+
+| Option | Price | Connection | Notes |
+|---|---|---|---|
+| **INMP441** | ~$5 | I2S (GPIO) | Best value. Low latency, 3 jumper wires |
+| **SPH0645LM4H** | ~$10 | I2S (GPIO) | Higher quality I2S mic |
+| **Cheap USB mic** | ~$10 | USB-C (OTG adapter) | Simplest setup, frees GPIO pins |
+| **USB headset mic** | ~$20 | USB-C (OTG adapter) | Plug and play |
+
+**Recommended:** INMP441 via I2S — cheap, low latency, doesn't use the USB port (keeps it free for power).
 
 ### Client (env vars)
 
