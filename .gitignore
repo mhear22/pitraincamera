@@ -4,6 +4,7 @@ client-rust/target/
 # Node
 server/node_modules/
 server/data/
+server/screenshot.js
 
 # Env
 .env

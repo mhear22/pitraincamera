@@ -1,8 +1,16 @@
-# Pi Train Camera — Sound Guard
+# 🔊 Pi Train Camera — Sound Guard
 
 Audio monitoring system for Raspberry Pi. Listens to onboard mic, captures photos + audio clips on loud events, reports back to a dashboard server.
 
 > **Rewrite of the original Django/Python version.** The old code lives on `main`. This branch (`rewrite`) uses Rust (client) + Node.js/Express (server) for better performance on Pi Zero.
+
+## Screenshots
+
+### Events Dashboard
+![Events Tab](docs/screenshot-events.png)
+
+### Pi Status & Remote Settings
+![Settings Tab](docs/screenshot-settings.png)
 
 ## Architecture
 
