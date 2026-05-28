@@ -52,16 +52,16 @@ impl RingBuffer {
 
 // --- Camera ---
 pub fn capture_photo() -> Result<Option<Vec<u8>>> {
-    let tools = [
+    let tools: &[(&str, &[&str])] = &[
         // rpicam-still (Raspberry Pi OS Bookworm+)
-        ("rpicam-still", vec!["--width", "1280", "--height", "720", "--timeout", "1000", "-o", "/dev/stdout"]),
+        ("rpicam-still", &["--width", "1280", "--height", "720", "--timeout", "1000", "-o", "/dev/stdout"]),
         // libcamera-jpeg (older name)
-        ("libcamera-jpeg", vec!["--width", "1280", "--height", "720", "--timeout", "1000", "-o", "/dev/stdout"]),
+        ("libcamera-jpeg", &["--width", "1280", "--height", "720", "--timeout", "1000", "-o", "/dev/stdout"]),
         // fswebcam fallback (USB cameras)
-        ("fswebcam", vec!["-r", "1280x720", "--no-banner", "-"]),
+        ("fswebcam", &["-r", "1280x720", "--no-banner", "-"]),
     ];
 
-    for (tool, args) in &tools {
+    for (tool, args) in tools {
         let output = std::process::Command::new(tool)
             .args(args)
             .output();
@@ -83,12 +83,14 @@ pub fn capture_photo() -> Result<Option<Vec<u8>>> {
     let tmp = tempfile::NamedTempFile::new().context("temp file")?;
     let tmp_path = tmp.path().to_str().context("path")?.to_string();
 
-    for (tool, mut args) in tools {
+    for (tool, base_args) in tools {
+        let mut args: Vec<String> = base_args.iter().map(|s| s.to_string()).collect();
         // Replace -o /dev/stdout or - with -o $tmp_path
-        if let Some(idx) = args.iter().position(|a| *a == "/dev/stdout" || *a == "-") {
+        if let Some(idx) = args.iter().position(|a| a == "/dev/stdout" || a == "-") {
             args[idx] = tmp_path.clone();
         } else {
-            args.extend_from_slice(&["-o", &tmp_path]);
+            args.push("-o".to_string());
+            args.push(tmp_path.clone());
         }
         let output = std::process::Command::new(tool)
             .args(&args)
