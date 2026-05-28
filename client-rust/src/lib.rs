@@ -80,9 +80,9 @@ pub fn capture_photo() -> Result<Option<Vec<u8>>> {
     let tmp_path = tmp.path().to_str().context("path")?.to_string();
 
     let file_attempts: Vec<(&str, Vec<String>)> = vec![
-        ("rpicam-still", vec!["--width", "1280".into(), "--height", "720".into(), "--timeout", "1000".into(), "-o", tmp_path.clone()]),
-        ("libcamera-jpeg", vec!["--width", "1280".into(), "--height", "720".into(), "--timeout", "1000".into(), "-o", tmp_path.clone()]),
-        ("fswebcam", vec!["-r", "1280x720".into(), "--no-banner", tmp_path.clone()]),
+        ("rpicam-still", vec!["--width".into(), "1280".into(), "--height".into(), "720".into(), "--timeout".into(), "1000".into(), "-o".into(), tmp_path.clone()]),
+        ("libcamera-jpeg", vec!["--width".into(), "1280".into(), "--height".into(), "720".into(), "--timeout".into(), "1000".into(), "-o".into(), tmp_path.clone()]),
+        ("fswebcam", vec!["-r".into(), "1280x720".into(), "--no-banner".into(), tmp_path.clone()]),
     ];
 
     for (tool, args) in &file_attempts {
