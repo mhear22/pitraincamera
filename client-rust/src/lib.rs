@@ -52,37 +52,61 @@ impl RingBuffer {
 
 // --- Camera ---
 pub fn capture_photo() -> Result<Option<Vec<u8>>> {
-    let output = std::process::Command::new("fswebcam")
-        .args(["-r", "1280x720", "--no-banner", "-"])
-        .output();
+    let tools = [
+        // rpicam-still (Raspberry Pi OS Bookworm+)
+        ("rpicam-still", vec!["--width", "1280", "--height", "720", "--timeout", "1000", "-o", "/dev/stdout"]),
+        // libcamera-jpeg (older name)
+        ("libcamera-jpeg", vec!["--width", "1280", "--height", "720", "--timeout", "1000", "-o", "/dev/stdout"]),
+        // fswebcam fallback (USB cameras)
+        ("fswebcam", vec!["-r", "1280x720", "--no-banner", "-"]),
+    ];
 
-    match output {
-        Ok(out) if out.status.success() && !out.stdout.is_empty() => {
-            return Ok(Some(out.stdout));
+    for (tool, args) in &tools {
+        let output = std::process::Command::new(tool)
+            .args(args)
+            .output();
+
+        match output {
+            Ok(out) if out.status.success() && !out.stdout.is_empty() => {
+                info!("Photo captured via {}", tool);
+                return Ok(Some(out.stdout));
+            }
+            _ => {
+                warn!("{} failed, trying next...", tool);
+                continue;
+            }
         }
-        _ => warn!("fswebcam failed, trying libcamera..."),
     }
 
+    // Last resort: try rpicam-still / libcamera-jpeg to temp file
+    // (stdout piped output can fail on some Pi configs)
     let tmp = tempfile::NamedTempFile::new().context("temp file")?;
     let tmp_path = tmp.path().to_str().context("path")?.to_string();
 
-    let output = std::process::Command::new("libcamera-jpeg")
-        .args([
-            "-o", &tmp_path,
-            "--width", "1280",
-            "--height", "720",
-            "--timeout", "1000",
-        ])
-        .output();
-
-    match output {
-        Ok(out) if out.status.success() => {
-            let data = std::fs::read(&tmp_path).context("read photo")?;
-            return Ok(Some(data));
+    for (tool, mut args) in tools {
+        // Replace -o /dev/stdout or - with -o $tmp_path
+        if let Some(idx) = args.iter().position(|a| *a == "/dev/stdout" || *a == "-") {
+            args[idx] = tmp_path.clone();
+        } else {
+            args.extend_from_slice(&["-o", &tmp_path]);
         }
-        _ => warn!("libcamera-jpeg also failed — no camera available"),
+        let output = std::process::Command::new(tool)
+            .args(&args)
+            .output();
+        match output {
+            Ok(out) if out.status.success() => {
+                if let Ok(data) = std::fs::read(&tmp_path) {
+                    if !data.is_empty() {
+                        info!("Photo captured via {} (temp file)", tool);
+                        return Ok(Some(data));
+                    }
+                }
+            }
+            _ => continue,
+        }
     }
 
+    warn!("All camera tools failed — no photo");
     Ok(None)
 }
 
